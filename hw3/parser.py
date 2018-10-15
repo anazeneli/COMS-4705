@@ -12,7 +12,7 @@ regenerated every time.
 
 # Calculate counts
 trainFile = "parse_train.dat"
-
+rareFile = "parse_train.RARE.dat"
 os.system("python count_cfg_freq.py " + trainFile + "> cfg.counts")
 countOpen=open('cfg.counts','r')
 
@@ -33,9 +33,9 @@ for i in tokenlist:
 
 
 def replace_rare_words():
-    # recursively walk through the parse tree
     token = "_RARE_"
 
+    # recursively walk through the parse tree
     def replace(tree, token):
         if len(tree) == 2:
             if tree[1] not in not_rare_words:
@@ -50,8 +50,11 @@ def replace_rare_words():
 
     rare_trees =  map(lambda l: replace(l, token), trees)
 
-    with open("rare_words.dat", "w") as outfile:
+    with open(rareFile, "w") as outfile:
         str = map(lambda t: json.dumps(t), rare_trees)
         outfile.write('\n'.join(str))
 
 replace_rare_words()
+
+os.system("python count_cfg_freq.py " + rareFile + "> cfg.counts_rare")
+rareCountOpen=open('cfg.counts_rare','r')
