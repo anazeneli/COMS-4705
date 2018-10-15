@@ -26,48 +26,32 @@ for line in countOpen:
         else:
             tokenlist[words[3]] = int(words[0])
 
-# create a dictionary of rare words to replace in parser_dev.train
+# create a dictionary of rare words to replace in oarser_dev.train
 for i in tokenlist:
     if tokenlist[i] >= 5:
         not_rare_words[i] = tokenlist[i]
 
-def replace_rare_words(d, token):
+
+def replace_rare_words():
+    # recursively walk through the parse tree
     token = "_RARE_"
+
+    def replace(tree, token):
+        if len(tree) == 2:
+            if tree[1] not in not_rare_words:
+                tree[1] = token
+        elif len(tree) == 3:
+            tree[1] = replace(tree[1], token)
+            tree[2] = replace(tree[2], token)
+        return tree
+
     with open(trainFile) as f:
         trees = map(lambda l: json.loads(l.strip()), f.readlines())
 
-    count = 0
-    for t in trees:
-        count += 1
-        if count <= 10:
-            print t
-            for i in range(1,len(t)):
-                # print i, t[i], len(t[i])
-                for j in range(1, len(t[i])):
-                    if len(t[i][j]) == 2:
-                        word = t[i][j][1]
-                        # if not in dict, replace rare word
-                        print "UNARY"
-                        print word
-                        if word not in d.keys():
-                            t[i][j][1] = token
-                        # print "UNARY", t[i][j][1]
-                    elif len(t[i][j]) == 3:
-                        w1 = t[i][j][1][1]
-                        w2 = t[i][j][2][1]
-                        print w1
-                        print w2
-                        if w1 not in d.keys():
-                            t[i][j][1][1] = token
-                        if w2 not in d.keys():
-                            t[i][j][2][1] = token
-
-                        # print "BINARY RULE", t[i][j][k][1]
-
+    rare_trees =  map(lambda l: replace(l, token),trees)
 
     with open("rare_words.dat", "w") as outfile:
-        str = map(lambda t: json.dumps(t), trees)
+        str = map(lambda t: json.dumps(t), rare_trees)
         outfile.write('\n'.join(str))
 
-
-replace_rare_words(not_rare_words, "_RARE_")
+replace_rare_words()
