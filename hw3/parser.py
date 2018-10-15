@@ -87,31 +87,52 @@ def compute_rule_params():
 # tree with S as its root
 def cky(sen):
     n = len(sen)
-
+    pi = {}
+    bp = {}
     # INITIALIZATION
     for i in range(1, n):
         for X in nonterminals:
-            if (X, sen[i]) in unary.keys():
-                pi[i,i,X] = q[X, sen[i]]
-            else:
-                pi[i,i,X] = 0
+            if  X == 'S':
+                if (X, sen[i]) in unary.keys():
+                    pi[i,i,X] = q[X, sen[i]]
+                else:
+                    pi[i,i,X] = 0
 
     # ALGORITHM
     for l in range(1, n-1):
-        for i in range(1, n-l):
-            j = i+1
+        for i in range(1,n-l):
+            j = i+l
             for X in nonterminals:
                 for x,y,z in binary.keys():
-                    if x = X:
-                        pi[i, j, X] =
+                    max_pi = 0
+                    max_bp = ()
+                    if x == X:
+                        split_range = range(i, j-1)
+                        for s in split_range:
+                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
 
+                            if temp_pi > max_pi:
+                                max_pi = pi
+                                max_bp = ([x,y,z], s)
 
-    # # fix sentence fragment issue
-    # if pi[1,n,S] not 0:
-    #     return pi[1,n,S]
-    # else:
-    #     for X
-    #         pi[1,n,X]
+                        pi[i,j,X] = max_pi
+                        bp[i,j,X] = max_bp
+
+    # fix sentence fragment issue
+    if pi[1,n,'S'] != 0:
+        return pi[1,n,'S']
+    else:
+        max_pi = 0
+        max_X = ''
+        for X in nonterminals:
+            temp_pi = pi[1,n,X]
+
+            if temp_pi > max_pi:
+                max_pi  = temp_pi
+                max_X = X
+
+        return pi[1,n,max_X]
+
 
 if __name__ == '__main__':
     get_counts(countOpen)
