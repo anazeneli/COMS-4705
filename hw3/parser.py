@@ -48,7 +48,7 @@ def replace_rare_words():
     with open(trainFile) as f:
         trees = map(lambda l: json.loads(l.strip()), f.readlines())
 
-    rare_trees =  map(lambda l: replace(l, token),trees)
+    rare_trees =  map(lambda l: replace(l, token), trees)
 
     with open("rare_words.dat", "w") as outfile:
         str = map(lambda t: json.dumps(t), rare_trees)
