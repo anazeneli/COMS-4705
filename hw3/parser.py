@@ -59,22 +59,25 @@ def cky(sen):
                             bp[i,j,X] = max_bp
 
     # fix sentence fragment issues
-    # if pi[0,n-1,'S'] != 0:
-    #     return pi[0,n-1,'S']
-    # else:
-    #     max_pi = 0
-    #     max_X = ''
-    #     for X in nonterminals:
-    #         if (0,n-1,X) not in pi.keys():
-    #             temp_pi = pi[0,n-1,X]
-    #         else:
-    #             temp_pi = 0
-    #
-    #         if temp_pi > max_pi:
-    #             max_pi  = temp_pi
-    #             max_X = X
-    #
-    #     return pi[1,n-1,max_X]
+    # submit the value of the highest parse
+    # using indices of first and final element
+    print n
+    if pi[0,n-1,'S'] != 0:
+        return pi[0,n-1,'S']
+    else:
+        max_pi = 0
+        max_X = ''
+        for X in nonterminals:
+            if (0,n-1,X) not in pi.keys():
+                temp_pi = pi[0,n-1,X]
+            else:
+                temp_pi = 0
+
+            if temp_pi > max_pi:
+                max_pi  = temp_pi
+                max_X = X
+
+        return pi[1,n-1,max_X]
 
 if __name__ == '__main__':
     if sys.argv[1] == 'q4':
@@ -84,11 +87,12 @@ if __name__ == '__main__':
         counts    = "cfg.counts"
 
         rw = RareWordsPreprocessor(trainFile, rareFile, counts)
+        rw.replace_rare_words()
 
     elif sys.argv[1] == 'q5':
         # run CKY
         rareFile  = sys.argv[2]
-        testFile   = sys.argv[3]
+        testFile  = sys.argv[3]
         predFile  = sys.argv[4]
         counts    = "cfg.counts_rare"
         rw = RareWordsPreprocessor(rareFile, testFile, counts)

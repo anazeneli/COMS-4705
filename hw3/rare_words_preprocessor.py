@@ -6,7 +6,7 @@ means the "cfg.counts" is a temporary file and will be
 regenerated every time.
 """
 
-# define globals 
+# define globals
 q              = {}
 tokenlist      = {}
 nonterminals   = {}
@@ -22,8 +22,6 @@ class RareWordsPreprocessor():
         os.system("python count_cfg_freq.py " + self.trainFile + "> " + counts )
         countOpen= open(counts,'r')
         self.get_counts(countOpen)
-        self.replace_rare_words()
-
 
     def get_counts(self, count) :
         for line in count:
