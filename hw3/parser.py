@@ -4,70 +4,7 @@ __author__="Ana Zeneli <a.zeneli@columbia.edu>"
 __date__ ="$Oct 12, 2018"
 
 import os, sys, re, json, itertools
-"""
-frequency count should be part of the program, which
-means the "cfg.counts" is a temporary file and will be
-regenerated every time.
-"""
-
-# Calculate counts
-trainFile = "parse_train.dat"
-rareFile = "parse_train.RARE.dat"
-os.system("python count_cfg_freq.py " + trainFile + "> cfg.counts")
-countOpen=open('cfg.counts','r')
-
-q = {}
-tokenlist      = {}
-nonterminals   = {}
-binary         = {}
-unary          = {}
-not_rare_words = {}
-
-def get_counts(count) :
-    for line in count:
-        words = line.split()
-        if words[1] == 'UNARYRULE':
-            if words[3] in tokenlist.keys():
-                tokenlist[words[3]] += int(words[0])
-            else:
-                tokenlist[words[3]] = int(words[0])
-            if (words[2],words[3]) in unary.keys():
-                unary[words[2],words[3]] += int(words[0])
-            else:
-                unary[words[2], words[3]] = int(words[0])
-
-        elif words[1] == 'BINARYRULE':
-            binary[words[2], words[3], words[4]] = int(words[0])
-        elif words[1] == 'NONTERMINAL':
-            nonterminals[words[2]] = int(words[0])
-
-# create a dictionary of rare words to replace in oarser_dev.train
-for i in tokenlist:
-    if tokenlist[i] >= 5:
-        not_rare_words[i] = tokenlist[i]
-
-
-def replace_rare_words():
-    token = "_RARE_"
-
-    # recursively walk through the parse tree
-    def replace(tree, token):
-        if len(tree) == 2:
-            if tree[1] not in not_rare_words:
-                tree[1] = token
-        elif len(tree) == 3:
-            tree[1] = replace(tree[1], token)
-            tree[2] = replace(tree[2], token)
-        return tree
-
-    with open(trainFile) as f:
-        trees = map(lambda l: json.loads(l.strip()), f.readlines())
-
-    rare_trees =  map(lambda l: replace(l, token), trees)
-
-    with open(rareFile, "w") as outfile:
-        str = map(lambda t: json.dumps(t), rare_trees)
-        outfile.write('\n'.join(str))
+from rare_words_preprocessor import *
 
 # Emissions from the rare words count
 def compute_rule_params():
@@ -90,66 +27,87 @@ def cky(sen):
     pi = {}
     bp = {}
     # INITIALIZATION
-    for i in range(1, n):
+    for i in range(n):
         for X in nonterminals:
-            if  X == 'S':
-                if (X, sen[i]) in unary.keys():
-                    pi[i,i,X] = q[X, sen[i]]
-                else:
-                    pi[i,i,X] = 0
+            if (X, sen[i]) in unary.keys():
+                pi[i,i,X] = q[X, sen[i]]
+            else:
+                pi[i,i,X] = 0
 
     # ALGORITHM
     for l in range(1, n-1):
-        for i in range(1,n-l):
+        # i is the index of the array
+        for i in range(n-l):
             j = i+l
             for X in nonterminals:
+                max_pi = 0
+                max_bp = ()
                 for x,y,z in binary.keys():
-                    max_pi = 0
-                    max_bp = ()
                     if x == X:
-                        split_range = range(i, j-1)
+                        split_range = range(i, j)
                         for s in split_range:
-                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
-
+                            if (i,s,y) in pi.keys() and (s+1,j, z) in pi.keys():
+                                temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
+                            else:
+                                temp_pi = 0
                             if temp_pi > max_pi:
-                                max_pi = pi
-                                max_bp = ([x,y,z], s)
+                                max_pi = temp_pi
+                                # record the rule and split point of max prob
+                                max_bp = ((y,z), s)
 
-                        pi[i,j,X] = max_pi
-                        bp[i,j,X] = max_bp
+                            pi[i,j,X] = max_pi
+                            bp[i,j,X] = max_bp
 
-    # fix sentence fragment issue
-    if pi[1,n,'S'] != 0:
-        return pi[1,n,'S']
-    else:
-        max_pi = 0
-        max_X = ''
-        for X in nonterminals:
-            temp_pi = pi[1,n,X]
-
-            if temp_pi > max_pi:
-                max_pi  = temp_pi
-                max_X = X
-
-        return pi[1,n,max_X]
-
+    # fix sentence fragment issues
+    # if pi[0,n-1,'S'] != 0:
+    #     return pi[0,n-1,'S']
+    # else:
+    #     max_pi = 0
+    #     max_X = ''
+    #     for X in nonterminals:
+    #         if (0,n-1,X) not in pi.keys():
+    #             temp_pi = pi[0,n-1,X]
+    #         else:
+    #             temp_pi = 0
+    #
+    #         if temp_pi > max_pi:
+    #             max_pi  = temp_pi
+    #             max_X = X
+    #
+    #     return pi[1,n-1,max_X]
 
 if __name__ == '__main__':
-    get_counts(countOpen)
-    replace_rare_words()
+    if sys.argv[1] == 'q4':
+        # Calculate counts
+        trainFile = sys.argv[2]
+        rareFile  = sys.argv[3]
+        counts    = "cfg.counts"
 
-    os.system("python count_cfg_freq.py " + rareFile + "> cfg.counts_rare")
-    rareCountOpen=open('cfg.counts_rare','r')
+        rw = RareWordsPreprocessor(trainFile, rareFile, counts)
 
-    get_counts(rareCountOpen)
-    compute_rule_params()
+    elif sys.argv[1] == 'q5':
+        # run CKY
+        rareFile  = sys.argv[2]
+        testFile   = sys.argv[3]
+        predFile  = sys.argv[4]
+        counts    = "cfg.counts_rare"
+        rw = RareWordsPreprocessor(rareFile, testFile, counts)
 
-    testFile = "parse_dev.dat"
-    trees = []
-    with open(testFile) as f:
-        for line in f:
-            t = line.split()
-            trees.append(t)
+        compute_rule_params()
 
-    for t in trees:
-        cky(t)
+        trees = []
+        with open(testFile) as f:
+            for line in f:
+                t = line.split()
+                trees.append(t)
+
+        for t in trees:
+            cky(t)
+        raise ValueError('NOt yet setup')
+
+    elif sys.argv[1] == 'q6':
+        # efficiency test
+        raise ValueError('NOt yet setup')
+
+    else:
+        raise ValueError('Enter python parser.py q4/q5/q6 and necessary files ')
