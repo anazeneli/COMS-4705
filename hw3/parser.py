@@ -87,8 +87,7 @@ def compute_rule_params():
 def cky(sen):
     n = len(sen)
     #initialize to zero to avoid later key errros
-    # pi = defaultdict(lambda: 0)
-    pi = {}
+    pi = defaultdict(lambda: 0)
     bp = {}
 
     # INITIALIZATION
@@ -102,10 +101,10 @@ def cky(sen):
     # check proper pi values filled in
     # with open ("pi.txt", "w+") as f:
     #     for i in pi:
-    #         f.write("%s %ff\n " % (i, pi[i]))
+    #         f.write("%s %f\n " % (i, pi[i]))
 
     # ALGORITHM
-    for l in range(n-1):
+    for l in range(n):
         # i is the index of the array
         for i in range(n-l):
             j = i+l
@@ -115,14 +114,8 @@ def cky(sen):
                 for x,y,z in binary.keys():
                     if x == X:
                         split_range = range(i, j)
-                        # j - 1 creating an issue with dictionaru
                         for s in split_range:
-                            if i == 0 and j == 12:
-                                print "YOOOO"
-                            if (i,s,y) in pi.keys() and (s+1, j, z) in pi.keys():
-                                temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
-                            else:
-                                temp_pi = 0
+                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
 
                             if temp_pi > max_pi:
                                 max_pi = temp_pi
@@ -135,23 +128,25 @@ def cky(sen):
     # # TODO: fix issues that arise from sentence fragment
     # # submit the value of the highest parse
     # # using indices of first and final element
-    if pi[0,n-1,'S'] != 0:
-        return pi[0,n-1,'S']
-    else:
-        max_pi = 0
-        max_X = ''
-        for X in nonterminals:
-            if (0,n-1,X) not in pi.keys():
-                temp_pi = pi[0,n-1,X]
-            else:
-                temp_pi = 0
+    # if pi[0,n-1,'S'] != 0:
+    #     return pi[0,n-1,'S']
+    # else sentence is a fragment, choose a new root value
+    # else:
+    #     max_pi = 0
+    #     max_X = ''
+    #     for X in nonterminals:
+    #         if (0,n-1,X) not in pi.keys():
+    #             temp_pi = pi[0,n-1,X]
+    #         else:
+    #             temp_pi = 0
+    #
+    #         if temp_pi > max_pi:
+    #             max_pi  = temp_pi
+    #             max_X = X
+    #
+    #     return pi[1,n-1,max_X]
 
-            if temp_pi > max_pi:
-                max_pi  = temp_pi
-                max_X = X
-
-        return pi[1,n-1,max_X]
-
+    # TODO: Rebuild parse tree using bp
 
 if __name__ == '__main__':
     if sys.argv[1] == 'q4':
@@ -184,8 +179,11 @@ if __name__ == '__main__':
                 t = line.split()
                 trees.append(t)
 
+        count = 0
         for t in trees:
-            cky(t)
+            if count == 0:
+                cky(t)
+            count +=1
 
     elif sys.argv[1] == 'q6':
         # efficiency test
