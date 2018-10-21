@@ -98,11 +98,6 @@ def cky(sen):
             else:
                 pi[i,i,X] = 0
 
-    # check proper pi values filled in
-    # with open ("pi.txt", "w+") as f:
-    #     for i in pi:
-    #         f.write("%s %f\n " % (i, pi[i]))
-
     # ALGORITHM
     for l in range(n):
         # i is the index of the array
@@ -125,28 +120,30 @@ def cky(sen):
                         pi[i,j,X] = max_pi
                         bp[i,j,X] = max_bp
 
-    # # TODO: fix issues that arise from sentence fragment
-    # # submit the value of the highest parse
-    # # using indices of first and final element
-    # if pi[0,n-1,'S'] != 0:
-    #     return pi[0,n-1,'S']
+    # fix issues that arise from sentence fragment
+    # submit the value of the highest parse
+    # using indices of first and final element
+    root = ''
+    if pi[0,n-1,'S'] != 0:
+        root = 'S'
     # else sentence is a fragment, choose a new root value
-    # else:
-    #     max_pi = 0
-    #     max_X = ''
-    #     for X in nonterminals:
-    #         if (0,n-1,X) not in pi.keys():
-    #             temp_pi = pi[0,n-1,X]
-    #         else:
-    #             temp_pi = 0
-    #
-    #         if temp_pi > max_pi:
-    #             max_pi  = temp_pi
-    #             max_X = X
-    #
-    #     return pi[1,n-1,max_X]
+    else:
+        max_pi = 0
+        max_X = ''
+        for X in nonterminals:
+            if (0,n-1,X) not in pi.keys():
+                temp_pi = pi[0,n-1,X]
+            else:
+                temp_pi = 0
+
+            if temp_pi > max_pi:
+                max_pi  = temp_pi
+                max_X = X
+
+        root = max_X
 
     # TODO: Rebuild parse tree using bp
+    
 
 if __name__ == '__main__':
     if sys.argv[1] == 'q4':
