@@ -4,33 +4,30 @@ __author__="Ana Zeneli <a.zeneli@columbia.edu>"
 __date__ ="$Oct 12, 2018"
 
 import os, sys, re, json, itertools
+from collections import defaultdict
 """
 frequency count should be part of the program, which
 means the "cfg.counts" is a temporary file and will be
 regenerated every time.
 """
 
-# Calculate counts
-trainFile = "parse_train.dat"
-rareFile = "parse_train.RARE.dat"
-os.system("python count_cfg_freq.py " + trainFile + "> cfg.counts")
-countOpen=open('cfg.counts','r')
-
-q = {}
-tokenlist      = {}
+# define globals
+q              = {}
+wordlist       = {}
 nonterminals   = {}
 binary         = {}
 unary          = {}
 not_rare_words = {}
 
-def get_counts(count) :
+
+def get_counts(self, count) :
     for line in count:
         words = line.split()
         if words[1] == 'UNARYRULE':
-            if words[3] in tokenlist.keys():
-                tokenlist[words[3]] += int(words[0])
+            if words[3] in wordlist.keys():
+                wordlist[words[3]] += int(words[0])
             else:
-                tokenlist[words[3]] = int(words[0])
+                wordlist[words[3]] = int(words[0])
             if (words[2],words[3]) in unary.keys():
                 unary[words[2],words[3]] += int(words[0])
             else:
@@ -41,16 +38,16 @@ def get_counts(count) :
         elif words[1] == 'NONTERMINAL':
             nonterminals[words[2]] = int(words[0])
 
-# create a dictionary of rare words to replace in oarser_dev.train
-for i in tokenlist:
-    if tokenlist[i] >= 5:
-        not_rare_words[i] = tokenlist[i]
-
-
 def replace_rare_words():
-    token = "_RARE_"
+    # create a dictionary of not rare words to
+    # keep in place in parser_dev.train
+    for i in wordlist:
+        if wordlist[i] >= 5:
+            not_rare_words[i] = wordlist[i]
 
     # recursively walk through the parse tree
+    token = "_RARE_"
+
     def replace(tree, token):
         if len(tree) == 2:
             if tree[1] not in not_rare_words:
@@ -65,70 +62,51 @@ def replace_rare_words():
 
     rare_trees =  map(lambda l: replace(l, token), trees)
 
-    with open(rareFile, "w") as outfile:
+    with open("parse_train_RARE.dat", "w") as outfile:
         str = map(lambda t: json.dumps(t), rare_trees)
         outfile.write('\n'.join(str))
 
-# Emissions from the rare words count
-def compute_rule_params():
-    # q(X -> Y1Y2) = Count(X-> Y1Y2) / Count(X)
-    for i,j,k in binary:
-        q[i,j,k] = float(binary[i,j,k]) / nonterminals[i]
-        # print i,j,k, q[i,j,k]
-
-    # Unary Parameter calculation
-    # q(X -> w) = Count(X-> w) / Count(X)
-    for i,j in unary:
-        q[i, j] = float(unary[i, j]) / nonterminals[i]
-        # print i, j, q[i,j]
-
-# cky algorithm takes a sentence and
-# returns the highest probability parse
-# tree with S as its root
-def cky(sen):
-    n = len(sen)
-
-    # INITIALIZATION
-    for i in range(1, n):
-        for X in nonterminals:
-            if (X, sen[i]) in unary.keys():
-                pi[i,i,X] = q[X, sen[i]]
-            else:
-                pi[i,i,X] = 0
-
-    # ALGORITHM
-    for l in range(1, n-1):
-        for i in range(1, n-l):
-            j = i+1
-            for X in nonterminals:
-                for x,y,z in binary.keys():
-                    if x = X:
-                        pi[i, j, X] =
 
 
-    # # fix sentence fragment issue
-    # if pi[1,n,S] not 0:
-    #     return pi[1,n,S]
-    # else:
-    #     for X
-    #         pi[1,n,X]
+
 
 if __name__ == '__main__':
-    get_counts(countOpen)
-    replace_rare_words()
+    if sys.argv[1] == 'q4':
+        # Calculate counts
+        trainFile = sys.argv[2]
+        rareFile  = sys.argv[3]
 
-    os.system("python count_cfg_freq.py " + rareFile + "> cfg.counts_rare")
-    rareCountOpen=open('cfg.counts_rare','r')
+        counts = "cfg.counts"
+        os.system("python count_cfg_freq.py " + trainFile + ">" + counts)
+        countOpen=open(counts,'r')
+        get_counts()
+        replace_rare_words()
+    elif sys.argv[1] == 'q5':
+        # run CKY
+        rareFile  = sys.argv[2]
+        testFile  = sys.argv[3]
+        predFile  = sys.argv[4]
+        counts    = "cfg.counts_rare"
 
-    get_counts(rareCountOpen)
-    compute_rule_params()
+        # rerun counts using rarefile
+        os.system("python count_cfg_freq.py " + rareFile + ">" + counts)
+        countOpen=open(counts,'r')
+        get_counts()
+        compute_rule_params()
 
-    testFile = "parse_dev.dat"
-    trees = []
-    with open(testFile) as f:
-        for line in f:
-            t = line.split()
-            trees.append(t)
+        # read in test file
+        trees = []
+        with open(testFile) as f:
+            for line in f:
+                t = line.split()
+                trees.append(t)
 
-    for t in trees:
-        cky(t)
+        for t in trees:
+            cky(t)
+
+    elif sys.argv[1] == 'q6':
+        # efficiency test
+        raise ValueError('NOt yet setup')
+
+    else:
+        raise ValueError('Enter python parser.py q4/q5/q6 and necessary files ')
