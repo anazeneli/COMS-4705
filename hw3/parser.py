@@ -5,7 +5,9 @@ __date__ ="$Oct 12, 2018"
 
 import os, sys, re, json, itertools
 from rare_words_preprocessor import *
+from collections import defaultdict
 
+q = {}
 # Emissions from the rare words count
 def compute_rule_params():
     # q(X -> Y1Y2) = Count(X-> Y1Y2) / Count(X)
@@ -24,60 +26,68 @@ def compute_rule_params():
 # tree with S as its root
 def cky(sen):
     n = len(sen)
+    #initialize to zero to avoid later key errros
+    # pi = defaultdict(lambda: 0)
     pi = {}
     bp = {}
-    # INITIALIZATION
-    for i in range(n):
-        for X in nonterminals:
-            if (X, sen[i]) in unary.keys():
-                pi[i,i,X] = q[X, sen[i]]
-            else:
-                pi[i,i,X] = 0
+    for i in unary.keys():
+        print i, unary[i]
 
-    # ALGORITHM
-    for l in range(1, n-1):
-        # i is the index of the array
-        for i in range(n-l):
-            j = i+l
-            for X in nonterminals:
-                max_pi = 0
-                max_bp = ()
-                for x,y,z in binary.keys():
-                    if x == X:
-                        split_range = range(i, j)
-                        for s in split_range:
-                            if (i,s,y) in pi.keys() and (s+1,j, z) in pi.keys():
-                                temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
-                            else:
-                                temp_pi = 0
-                            if temp_pi > max_pi:
-                                max_pi = temp_pi
-                                # record the rule and split point of max prob
-                                max_bp = ((y,z), s)
+    # # INITIALIZATION
+    # for i in range(n):
+    #     for X in nonterminals:
+    #
+    #         if (X, sen[i]) in unary.keys():
+    #             pi[i,i,X] =  q[X, sen[i]]
+    #             # pi.update((i,i,X) : q[X, sen[i]])
+    #         else:
+    #             pi[i,i,X] = 0
+    #
+    # with open ("pi.txt", "w+") as f:
+    #     for i in pi:
+    #         f.write("%s %ff\n " % (i, pi[i]))
 
-                            pi[i,j,X] = max_pi
-                            bp[i,j,X] = max_bp
-
-    # fix sentence fragment issues
-    # submit the value of the highest parse
-    # using indices of first and final element
-    print n
-    if pi[0,n-1,'S'] != 0:
-        return pi[0,n-1,'S']
-    else:
-        max_pi = 0
-        max_X = ''
-        for X in nonterminals:
-            if (0,n-1,X) not in pi.keys():
-                temp_pi = pi[0,n-1,X]
-            else:
-                temp_pi = 0
-
-            if temp_pi > max_pi:
-                max_pi  = temp_pi
-                max_X = X
-
-        return pi[1,n-1,max_X]
+    # # ALGORITHM
+    # for l in range(n-1):
+    #     # i is the index of the array
+    #     for i in range(n-l):
+    #         j = i+l
+    #         for X in nonterminals:
+    #             max_pi = 0
+    #             max_bp = ()
+    #             for x,y,z in binary.keys():
+    #                 if x == X:
+    #                     split_range = range(i, j)
+    #                     for s in split_range:
+    #                         temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
+    #
+    #                         if temp_pi > max_pi:
+    #                             max_pi = temp_pi
+    #                             # record the rule and split point of max prob
+    #                             max_bp = ((y,z), s)
+    #
+    #                     pi[i,j,X] = max_pi
+    #                     bp[i,j,X] = max_bp
+    #
+    # # fix sentence fragment issues
+    # # submit the value of the highest parse
+    # # using indices of first and final element
+    # if pi[0,n-1,'S'] != 0:
+    #     return pi[0,n-1,'S']
+    # else:
+    #     max_pi = 0
+    #     max_X = ''
+    #     for X in nonterminals:
+    #         if (0,n-1,X) not in pi.keys():
+    #             temp_pi = pi[0,n-1,X]
+    #         else:
+    #             temp_pi = 0
+    #
+    #         if temp_pi > max_pi:
+    #             max_pi  = temp_pi
+    #             max_X = X
+    #
+    #     return pi[1,n-1,max_X]
 
 if __name__ == '__main__':
     if sys.argv[1] == 'q4':
@@ -88,6 +98,7 @@ if __name__ == '__main__':
 
         rw = RareWordsPreprocessor(trainFile, rareFile, counts)
         rw.replace_rare_words()
+        compute_rule_params()
 
     elif sys.argv[1] == 'q5':
         # run CKY
@@ -107,7 +118,6 @@ if __name__ == '__main__':
 
         for t in trees:
             cky(t)
-        raise ValueError('NOt yet setup')
 
     elif sys.argv[1] == 'q6':
         # efficiency test

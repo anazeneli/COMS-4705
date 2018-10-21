@@ -7,8 +7,7 @@ regenerated every time.
 """
 
 # define globals
-q              = {}
-tokenlist      = {}
+wordlist      = {}
 nonterminals   = {}
 binary         = {}
 unary          = {}
@@ -27,10 +26,10 @@ class RareWordsPreprocessor():
         for line in count:
             words = line.split()
             if words[1] == 'UNARYRULE':
-                if words[3] in tokenlist.keys():
-                    tokenlist[words[3]] += int(words[0])
+                if words[3] in wordlist.keys():
+                    wordlist[words[3]] += int(words[0])
                 else:
-                    tokenlist[words[3]] = int(words[0])
+                    wordlist[words[3]] = int(words[0])
                 if (words[2],words[3]) in unary.keys():
                     unary[words[2],words[3]] += int(words[0])
                 else:
@@ -42,9 +41,9 @@ class RareWordsPreprocessor():
                 nonterminals[words[2]] = int(words[0])
 
     # create a dictionary of rare words to replace in oarser_dev.train
-    for i in tokenlist:
-        if tokenlist[i] >= 5:
-            not_rare_words[i] = tokenlist[i]
+    for i in wordlist:
+        if wordlist[i] >= 5:
+            not_rare_words[i] = wordlist[i]
 
     def replace_rare_words(self):
         token = "_RARE_"
