@@ -5,6 +5,7 @@ __date__ ="$Oct 12, 2018"
 
 import os, sys, re, json, itertools
 from collections import defaultdict
+import time
 """
 frequency count should be part of the program, which
 means the "cfg.counts" is a temporary file and will be
@@ -18,6 +19,9 @@ nonterminals   = {}
 binary         = {}
 unary          = {}
 not_rare_words = {}
+#initialize to zero to avoid later key errros
+pi = defaultdict(lambda: 0)
+bp = defaultdict(tuple)
 
 # *************************** Q4 *******************************
 
@@ -86,64 +90,68 @@ def compute_rule_params():
 # tree with S as its root
 def cky(sen):
     n = len(sen)
-    #initialize to zero to avoid later key errros
-    pi = defaultdict(lambda: 0)
-    bp = {}
-
     # INITIALIZATION
     for i in range(n):
         for X in nonterminals:
-            if (X, sen[i]) in unary.keys():
+            if sen[i] not in wordlist:
+                # Handle rare words in new file
+                token = "_RARE_"
+                if (X, token) in unary.keys():
+                    pi[i,i,X] =  q[X, token]
+                    bp[i,i,X] = (sen[i], -1)
+
+            elif (X, sen[i]) in unary.keys():
                 pi[i,i,X] =  q[X, sen[i]]
-            else:
-                pi[i,i,X] = 0
+                bp[i,i,X] = (sen[i] , -1)
 
     # ALGORITHM
-    for l in range(n):
+    for l in range(1,n):
         # i is the index of the array
         for i in range(n-l):
             j = i+l
             for X in nonterminals:
                 max_pi = 0
                 max_bp = ()
-                for x,y,z in binary.keys():
-                    if x == X:
-                        split_range = range(i, j)
-                        for s in split_range:
-                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
 
+                split_range = range(i, j)
+                for s in split_range:
+                    for x,y,z in binary.keys():
+                        if x == X:
+                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
                             if temp_pi > max_pi:
                                 max_pi = temp_pi
                                 # record the rule and split point of max prob
-                                max_bp = ((y,z), s)
+                                max_bp = (y,z, s)
 
-                        pi[i,j,X] = max_pi
-                        bp[i,j,X] = max_bp
+                    pi[i,j,X] = max_pi
+                    bp[i,j,X] = max_bp
 
     # fix issues that arise from sentence fragment
     # submit the value of the highest parse
     # using indices of first and final element
     root = ''
     if pi[0,n-1,'S'] != 0:
-        root = 'S'
+        return trace(0, n-1, 'S')
     # else sentence is a fragment, choose a new root value
     else:
-        max_pi = 0
-        max_X = ''
+        list = []
         for X in nonterminals:
-            if (0,n-1,X) not in pi.keys():
-                temp_pi = pi[0,n-1,X]
-            else:
-                temp_pi = 0
+            list.append([X, float(pi[0,n-1, X])])
 
-            if temp_pi > max_pi:
-                max_pi  = temp_pi
-                max_X = X
+        index, value = max(list, key=lambda item: item[1])
+        # print index, value
+        return trace(0, n-1, index)
 
-        root = max_X
+# Rebuild parse tree using bp
+def trace(i,j,x) :
+    rootlen= len(bp[i,j,x])
 
-    # TODO: Rebuild parse tree using bp
-    
+    if rootlen == 2:
+        # return the word
+        return [x, bp[i,j,x][0]]
+    elif rootlen == 3:
+        y,z,s = bp[i,j,x]
+        return [x, trace(i, s, y), trace(s+1, j, z)]
 
 if __name__ == '__main__':
     if sys.argv[1] == 'q4':
@@ -157,6 +165,7 @@ if __name__ == '__main__':
         get_counts(countOpen)
         replace_rare_words()
     elif sys.argv[1] == 'q5':
+        start_time = time.time()
         # run CKY
         rareFile  = sys.argv[2]
         testFile  = sys.argv[3]
@@ -176,11 +185,15 @@ if __name__ == '__main__':
                 t = line.split()
                 trees.append(t)
 
-        count = 0
+        parsed = []
         for t in trees:
-            if count == 0:
-                cky(t)
-            count +=1
+            parsed.append(cky(t))
+
+        with open(predFile, "w") as outfile:
+            str = map(lambda t: json.dumps(t), parsed)
+            outfile.write('\n'.join(str))
+
+        print("--- %s seconds ---" % (time.time() - start_time))
 
     elif sys.argv[1] == 'q6':
         # efficiency test
