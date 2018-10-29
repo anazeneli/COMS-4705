@@ -6,6 +6,7 @@ __date__ ="$Oct 12, 2018"
 import os, sys, re, json, itertools
 from collections import defaultdict
 import time
+import cProfile, pstats, io
 """
 frequency count should be part of the program, which
 means the "cfg.counts" is a temporary file and will be
@@ -18,12 +19,17 @@ wordlist       = {}
 nonterminals   = {}
 binary         = {}
 unary          = {}
-not_rare_words = {}
+high_freq      = {}
 
 # *************************** Q4 *******************************
+def read_counts(count):
+    with open(count) as f:
+        return f.read().splitlines()
+
 def get_counts(count) :
-    for line in count:
-        words = line.split()
+    trees = read_counts(count)
+
+    for words in trees:
         if words[1] == 'UNARYRULE':
             if words[3] in wordlist.keys():
                 wordlist[words[3]] += int(words[0])
@@ -39,33 +45,32 @@ def get_counts(count) :
         elif words[1] == 'NONTERMINAL':
             nonterminals[words[2]] = int(words[0])
 
+def replace(tree, token):
+    if len(tree) == 2:
+        if tree[1] not in high_freq:
+            tree[1] = token
+    elif len(tree) == 3:
+        tree[1] = replace(tree[1], token)
+        tree[2] = replace(tree[2], token)
+    return tree
+
 def replace_rare_words():
     # create a dictionary of not rare words to
     # keep in place in parser_dev.train
     for i in wordlist:
         if wordlist[i] >= 5:
-            not_rare_words[i] = wordlist[i]
+            high_freq[i] = wordlist[i]
 
     # recursively walk through the parse tree
     token = "_RARE_"
+    with open(trainFile, "r") as f:
+        with open("parse_train.RARE.dat", "w") as outfile:
+            for line in f:
+                 t = json.loads(line)
+                 outfile.write(json.dumps(replace(t, token)))
+                 outfile.write("\n")
 
-    def replace(tree, token):
-        if len(tree) == 2:
-            if tree[1] not in not_rare_words:
-                tree[1] = token
-        elif len(tree) == 3:
-            tree[1] = replace(tree[1], token)
-            tree[2] = replace(tree[2], token)
-        return tree
 
-    with open(trainFile) as f:
-        trees = map(lambda l: json.loads(l.strip()), f.readlines())
-
-    rare_trees =  map(lambda l: replace(l, token), trees)
-
-    with open("parse_train.RARE.dat", "w") as outfile:
-        str = map(lambda t: json.dumps(t), rare_trees)
-        outfile.write('\n'.join(str))
 
 # *************************** Q5 ********************************
 # Emissions from the rare words count
@@ -81,7 +86,8 @@ def compute_rule_params():
         q[i, j] = float(unary[i, j]) / nonterminals[i]
         # print i, j, q[i,j]
 
-# cky algorithm takes a sentence and
+# dynamic programming algorithm
+# takes in a sentence as input and
 # returns the highest probability parse
 # tree with S as its root
 def cky(sen):
@@ -106,7 +112,6 @@ def cky(sen):
             else:
                 pi[i,i,X] =  0
                 bp[i,i,X] = ()
-
 
     # ALGORITHM
     for l in range(1,n):
@@ -161,9 +166,9 @@ if __name__ == '__main__':
 
         counts = "cfg.counts"
         os.system("python count_cfg_freq.py " + trainFile + ">" + counts)
-        countOpen=open(counts,'r')
-        get_counts(countOpen)
+        get_counts(counts)
         replace_rare_words()
+
     elif sys.argv[1] == 'q5':
         # run CKY
         rareFile  = sys.argv[2]
@@ -173,24 +178,18 @@ if __name__ == '__main__':
 
         # rerun counts using rarefile
         os.system("python count_cfg_freq.py " + rareFile + ">" + counts)
-        countOpen=open(counts,'r')
-        get_counts(countOpen)
+        get_counts(counts)
         compute_rule_params()
 
         # read in test file
-        trees = []
-        with open(testFile) as f:
-            for line in f:
-                t = line.split()
-                trees.append(t)
+        with open(testFile, "r") as f:
+            with open(predFile, "w") as outfile:
+                for line in f:
+                    t = line.split()
+                    outfile.write(json.dumps(cky(t)))
+                    outfile.write("\n")
 
-        parsed_trees = []
-        for t in trees:
-            parsed_trees.append(cky(t))
-
-        with open(predFile, "w") as outfile:
-            str = map(lambda t: json.dumps(t), parsed_trees)
-            outfile.write('\n'.join(str))
+        print("--- %s seconds ---" % (time.time() - start_time))
 
 
     elif sys.argv[1] == 'q6':
