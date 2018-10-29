@@ -6,7 +6,6 @@ __date__ ="$Oct 12, 2018"
 import os, sys, re, json, itertools
 from collections import defaultdict
 import time
-import cProfile, pstats, io
 """
 frequency count should be part of the program, which
 means the "cfg.counts" is a temporary file and will be
@@ -22,14 +21,9 @@ unary          = {}
 high_freq      = {}
 
 # *************************** Q4 *******************************
-def read_counts(count):
-    with open(count) as f:
-        return f.read().splitlines()
-
 def get_counts(count) :
-    trees = read_counts(count)
-
-    for words in trees:
+    for line in count:
+        words = line.split()
         if words[1] == 'UNARYRULE':
             if words[3] in wordlist.keys():
                 wordlist[words[3]] += int(words[0])
@@ -45,6 +39,7 @@ def get_counts(count) :
         elif words[1] == 'NONTERMINAL':
             nonterminals[words[2]] = int(words[0])
 
+# recursively replace words
 def replace(tree, token):
     if len(tree) == 2:
         if tree[1] not in high_freq:
@@ -54,24 +49,22 @@ def replace(tree, token):
         tree[2] = replace(tree[2], token)
     return tree
 
-def replace_rare_words():
+def replace_rare(rareFile):
     # create a dictionary of not rare words to
     # keep in place in parser_dev.train
-    for i in wordlist:
-        if wordlist[i] >= 5:
-            high_freq[i] = wordlist[i]
+    high_freq = [i for wordlist[i] in wordlist if wordlist[i] >= 5]
+    # for i in wordlist:
+    #     if wordlist[i] >= 5:
+    #         high_freq[i] = wordlist[i]
 
     # recursively walk through the parse tree
     token = "_RARE_"
     with open(trainFile, "r") as f:
-        with open("parse_train.RARE.dat", "w") as outfile:
-            for line in f:
-                 t = json.loads(line)
-                 outfile.write(json.dumps(replace(t, token)))
-                 outfile.write("\n")
+        trees = [replace(json.loads(line), token) for line in f]
 
-
-
+    with open(rareFile, "w") as outfile:
+        for t in trees:
+            outfile.write(json.dumps(t) + "\n")
 # *************************** Q5 ********************************
 # Emissions from the rare words count
 def compute_rule_params():
@@ -109,9 +102,6 @@ def cky(sen):
             elif (X, sen[i]) in unary.keys():
                 pi[i,i,X] =  q[X, sen[i]]
                 bp[i,i,X] = (sen[i] , -1)
-            else:
-                pi[i,i,X] =  0
-                bp[i,i,X] = ()
 
     # ALGORITHM
     for l in range(1,n):
@@ -144,7 +134,7 @@ def cky(sen):
 
         return trace(bp, 0, n - 1, index)
 
-# Rebuild parse tree using bp
+# Recursibely rebuild parse tree using bp
 def trace(bp, i,j,x) :
     rootlen= len(bp[i,j,x])
     if rootlen == 2:
@@ -166,10 +156,11 @@ if __name__ == '__main__':
 
         counts = "cfg.counts"
         os.system("python count_cfg_freq.py " + trainFile + ">" + counts)
-        get_counts(counts)
-        replace_rare_words()
+        countOpen= open(counts,'r')
+        get_counts(countOpen)
+        replace_rare(rareFile)
 
-    elif sys.argv[1] == 'q5':
+    elif sys.argv[1] == 'q5' or sys.argv[1] == 'q6':
         # run CKY
         rareFile  = sys.argv[2]
         testFile  = sys.argv[3]
@@ -178,23 +169,18 @@ if __name__ == '__main__':
 
         # rerun counts using rarefile
         os.system("python count_cfg_freq.py " + rareFile + ">" + counts)
-        get_counts(counts)
+        countOpen= open(counts,'r')
+        get_counts(countOpen)
         compute_rule_params()
 
         # read in test file
+        trees = []
+        parsed_trees = []
         with open(testFile, "r") as f:
             with open(predFile, "w") as outfile:
                 for line in f:
-                    t = line.split()
-                    outfile.write(json.dumps(cky(t)))
-                    outfile.write("\n")
+                    outfile.write(json.dumps(cky(line.split())) + "\n")
 
-        print("--- %s seconds ---" % (time.time() - start_time))
-
-
-    elif sys.argv[1] == 'q6':
-        # efficiency test
-        raise ValueError('NOt yet setup')
 
     else:
         raise ValueError('Enter python parser.py q4/q5/q6 and necessary files ')
