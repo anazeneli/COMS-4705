@@ -19,12 +19,8 @@ nonterminals   = {}
 binary         = {}
 unary          = {}
 not_rare_words = {}
-#initialize to zero to avoid later key errros
-pi = defaultdict(lambda: 0)
-bp = defaultdict(tuple)
 
 # *************************** Q4 *******************************
-
 def get_counts(count) :
     for line in count:
         words = line.split()
@@ -89,13 +85,17 @@ def compute_rule_params():
 # returns the highest probability parse
 # tree with S as its root
 def cky(sen):
+    token = "_RARE_"
     n = len(sen)
+    #initialize to zero to avoid later key errros
+    pi = defaultdict(lambda: 0)
+    bp = defaultdict(tuple)
+
     # INITIALIZATION
     for i in range(n):
         for X in nonterminals:
             if sen[i] not in wordlist:
                 # Handle rare words in new file
-                token = "_RARE_"
                 if (X, token) in unary.keys():
                     pi[i,i,X] =  q[X, token]
                     bp[i,i,X] = (sen[i], -1)
@@ -103,6 +103,10 @@ def cky(sen):
             elif (X, sen[i]) in unary.keys():
                 pi[i,i,X] =  q[X, sen[i]]
                 bp[i,i,X] = (sen[i] , -1)
+            else:
+                pi[i,i,X] =  0
+                bp[i,i,X] = ()
+
 
     # ALGORITHM
     for l in range(1,n):
@@ -112,11 +116,10 @@ def cky(sen):
             for X in nonterminals:
                 max_pi = 0
                 max_bp = ()
-
-                split_range = range(i, j)
-                for s in split_range:
-                    for x,y,z in binary.keys():
-                        if x == X:
+                for x,y,z in binary.keys():
+                    if x == X:
+                        split_range = range(i, j)
+                        for s in split_range:
                             temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
                             if temp_pi > max_pi:
                                 max_pi = temp_pi
@@ -126,34 +129,31 @@ def cky(sen):
                     pi[i,j,X] = max_pi
                     bp[i,j,X] = max_bp
 
-    # fix issues that arise from sentence fragment
-    # submit the value of the highest parse
-    # using indices of first and final element
-    root = ''
-    if pi[0,n-1,'S'] != 0:
-        return trace(0, n-1, 'S')
-    # else sentence is a fragment, choose a new root value
+    if pi[0, n - 1, 'S'] != 0:
+        return trace(bp, 0, n - 1, 'S')
     else:
         list = []
         for X in nonterminals:
-            list.append([X, float(pi[0,n-1, X])])
-
+            list.append( [X, pi[0, n - 1, X]])
         index, value = max(list, key=lambda item: item[1])
-        # print index, value
-        return trace(0, n-1, index)
+
+        return trace(bp, 0, n - 1, index)
 
 # Rebuild parse tree using bp
-def trace(i,j,x) :
+def trace(bp, i,j,x) :
     rootlen= len(bp[i,j,x])
-
     if rootlen == 2:
         # return the word
         return [x, bp[i,j,x][0]]
     elif rootlen == 3:
         y,z,s = bp[i,j,x]
-        return [x, trace(i, s, y), trace(s+1, j, z)]
+        return [x, trace(bp, i, s, y), trace(bp, s+1, j, z)]
+    else:
+        raise ValueError("Invalid rule.")
 
 if __name__ == '__main__':
+    start_time = time.time()
+
     if sys.argv[1] == 'q4':
         # Calculate counts
         trainFile = sys.argv[2]
@@ -165,7 +165,6 @@ if __name__ == '__main__':
         get_counts(countOpen)
         replace_rare_words()
     elif sys.argv[1] == 'q5':
-        start_time = time.time()
         # run CKY
         rareFile  = sys.argv[2]
         testFile  = sys.argv[3]
@@ -185,15 +184,14 @@ if __name__ == '__main__':
                 t = line.split()
                 trees.append(t)
 
-        parsed = []
+        parsed_trees = []
         for t in trees:
-            parsed.append(cky(t))
+            parsed_trees.append(cky(t))
 
         with open(predFile, "w") as outfile:
-            str = map(lambda t: json.dumps(t), parsed)
+            str = map(lambda t: json.dumps(t), parsed_trees)
             outfile.write('\n'.join(str))
 
-        print("--- %s seconds ---" % (time.time() - start_time))
 
     elif sys.argv[1] == 'q6':
         # efficiency test
@@ -201,3 +199,5 @@ if __name__ == '__main__':
 
     else:
         raise ValueError('Enter python parser.py q4/q5/q6 and necessary files ')
+
+    print("--- %s seconds ---" % (time.time() - start_time))
