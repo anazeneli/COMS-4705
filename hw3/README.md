@@ -18,4 +18,4 @@ Execution:
     python eval_parser.py parse_dev.key q6_prediction_file > q6_eval.txt
 
 Observations:
-    The performance of the parser using vertical markovization is 0.742-- a 0.028 improvement over the baseline parser. With vector markovization, we see the same totals, but with a higher precision, recall and f1 score. With a higher contextual accuracy, the parser can more correctly assign tags. We see an improvement even in the low count tags like NP+ADJ and NP+NUM. 
+    The performance of the parser using vertical markovization is 0.742-- a 0.028 improvement over the baseline parser. With vector markovization, we see the same totals, but with a higher precision, recall and f1 score. With a higher contextual accuracy, the parser can more correctly assign tags. We see an improvement even in the low count tags like NP+ADJ and NP+NUM.
