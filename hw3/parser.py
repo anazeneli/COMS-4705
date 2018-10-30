@@ -171,22 +171,23 @@ if __name__ == '__main__':
         countOpen= open(counts,'r')
         get_counts(countOpen)
         compute_rule_params()
-
-        read in test file
-        trees = []
-        parsed_trees = []
-        with open(testFile, "r") as f:
-            with open(predFile, "w") as outfile:
-                for line in f:
-                    outfile.write(json.dumps(cky(line.split())) + "\n")
-
-        # with open(testFile, "r") as f:
-        #     trees = [line.split() for line in f]
         #
-        # parsed_trees = map(cky, trees)
-        # with open(predFile, "w") as outfile:
-        #     for t in parsed_trees:
-        #         outfile.write(json.dumps(t) + '\n')
+        # # read in test file
+        # trees = []
+        # parsed_trees = []
+        # with open(testFile, "r") as f:
+        #     with open(predFile, "w") as outfile:
+        #         for line in f:
+        #             outfile.write(json.dumps(cky(line.split())) + "\n")
+
+        with open(testFile, "r") as f:
+            trees = [line.split() for line in f]
+
+        parsed_trees = map(cky, trees)
+
+        with open(predFile, "w") as outfile:
+            for t in parsed_trees:
+                outfile.write(json.dumps(t) + '\n')
 
 
 
