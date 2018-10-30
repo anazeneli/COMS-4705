@@ -52,10 +52,9 @@ def replace(tree, token):
 def replace_rare(rareFile):
     # create a dictionary of not rare words to
     # keep in place in parser_dev.train
-    high_freq = [i for wordlist[i] in wordlist if wordlist[i] >= 5]
-    # for i in wordlist:
-    #     if wordlist[i] >= 5:
-    #         high_freq[i] = wordlist[i]
+    for i in wordlist:
+        if wordlist[i] >= 5:
+            high_freq[i] = wordlist[i]
 
     # recursively walk through the parse tree
     token = "_RARE_"
@@ -173,13 +172,22 @@ if __name__ == '__main__':
         get_counts(countOpen)
         compute_rule_params()
 
-        # read in test file
+        read in test file
         trees = []
         parsed_trees = []
         with open(testFile, "r") as f:
             with open(predFile, "w") as outfile:
                 for line in f:
                     outfile.write(json.dumps(cky(line.split())) + "\n")
+
+        # with open(testFile, "r") as f:
+        #     trees = [line.split() for line in f]
+        #
+        # parsed_trees = map(cky, trees)
+        # with open(predFile, "w") as outfile:
+        #     for t in parsed_trees:
+        #         outfile.write(json.dumps(t) + '\n')
+
 
 
     else:
