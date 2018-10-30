@@ -19,25 +19,34 @@ nonterminals   = {}
 binary         = {}
 unary          = {}
 high_freq      = {}
+b_rules        = {}
 
 # *************************** Q4 *******************************
 def get_counts(count) :
-    for line in count:
-        words = line.split()
-        if words[1] == 'UNARYRULE':
-            if words[3] in wordlist.keys():
-                wordlist[words[3]] += int(words[0])
-            else:
-                wordlist[words[3]] = int(words[0])
-            if (words[2],words[3]) in unary.keys():
-                unary[words[2],words[3]] += int(words[0])
-            else:
-                unary[words[2], words[3]] = int(words[0])
+    with open(count, 'r') as f:
+        for line in f:
+            words = line.split()
+            if words[1] == 'UNARYRULE':
+                if words[3] in wordlist.keys():
+                    wordlist[words[3]] += int(words[0])
+                else:
+                    wordlist[words[3]] = int(words[0])
+                if (words[2],words[3]) in unary.keys():
+                    unary[words[2],words[3]] += int(words[0])
+                else:
+                    unary[words[2], words[3]] = int(words[0])
 
-        elif words[1] == 'BINARYRULE':
-            binary[words[2], words[3], words[4]] = int(words[0])
-        elif words[1] == 'NONTERMINAL':
-            nonterminals[words[2]] = int(words[0])
+            elif words[1] == 'BINARYRULE':
+                binary[words[2], words[3], words[4]] = int(words[0])
+                if words[2] in b_rules.keys() :
+                    b_rules[words[2]].append([words[3], words[4]])
+                else:
+                    b_rules[words[2]] = [[words[3], words[4]]]
+
+            elif words[1] == 'NONTERMINAL':
+                nonterminals[words[2]] = int(words[0])
+
+    return b_rules, wordlist, nonterminals, unary, binary
 
 # recursively replace words
 def replace(tree, token):
@@ -66,7 +75,9 @@ def replace_rare(rareFile):
             outfile.write(json.dumps(t) + "\n")
 # *************************** Q5 ********************************
 # Emissions from the rare words count
-def compute_rule_params():
+def compute_rule_params(count):
+    # local lookup is faster than global
+    _, _, nonterminals, unary, binary = get_counts(count)
     # q(X -> Y1Y2) = Count(X-> Y1Y2) / Count(X)
     for i,j,k in binary:
         q[i,j,k] = float(binary[i,j,k]) / nonterminals[i]
@@ -88,17 +99,20 @@ def cky(sen):
     #initialize to zero to avoid later key errros
     pi = defaultdict(lambda: 0)
     bp = defaultdict(tuple)
+    u_keys = unary.keys()
+    b_keys = binary.keys()
+    l_rules = b_rules.keys()
 
     # INITIALIZATION
     for i in range(n):
         for X in nonterminals:
             if sen[i] not in wordlist:
                 # Handle rare words in new file
-                if (X, token) in unary.keys():
+                if (X, token) in u_keys:
                     pi[i,i,X] =  q[X, token]
                     bp[i,i,X] = (sen[i], -1)
 
-            elif (X, sen[i]) in unary.keys():
+            elif (X, sen[i]) in u_keys:
                 pi[i,i,X] =  q[X, sen[i]]
                 bp[i,i,X] = (sen[i] , -1)
 
@@ -107,18 +121,19 @@ def cky(sen):
         # i is the index of the array
         for i in range(n-l):
             j = i+l
-            for X in nonterminals:
+            for X in l_rules:
                 max_pi = 0
                 max_bp = ()
-                for x,y,z in binary.keys():
-                    if x == X:
-                        split_range = range(i, j)
-                        for s in split_range:
-                            temp_pi = q[x,y,z] * pi[i,s,y] * pi[s+1, j, z]
-                            if temp_pi > max_pi:
-                                max_pi = temp_pi
-                                # record the rule and split point of max prob
-                                max_bp = (y,z, s)
+                rules = b_rules[X]
+                for r in rules:
+                    y,z = r
+                    split_range = range(i, j)
+                    for s in split_range:
+                        temp_pi = q[X,y,z] * pi[i,s,y] * pi[s+1, j, z]
+                        if temp_pi > max_pi:
+                            max_pi = temp_pi
+                            # record the rule and split point of max prob
+                            max_bp = (y,z, s)
 
                     pi[i,j,X] = max_pi
                     bp[i,j,X] = max_bp
@@ -155,8 +170,7 @@ if __name__ == '__main__':
 
         counts = "cfg.counts"
         os.system("python count_cfg_freq.py " + trainFile + ">" + counts)
-        countOpen= open(counts,'r')
-        get_counts(countOpen)
+        get_counts(counts)
         replace_rare(rareFile)
 
     elif sys.argv[1] == 'q5' or sys.argv[1] == 'q6':
@@ -168,17 +182,8 @@ if __name__ == '__main__':
 
         # rerun counts using rarefile
         os.system("python count_cfg_freq.py " + rareFile + ">" + counts)
-        countOpen= open(counts,'r')
-        get_counts(countOpen)
-        compute_rule_params()
-        #
-        # # read in test file
-        # trees = []
-        # parsed_trees = []
-        # with open(testFile, "r") as f:
-        #     with open(predFile, "w") as outfile:
-        #         for line in f:
-        #             outfile.write(json.dumps(cky(line.split())) + "\n")
+        # get_counts(counts)
+        compute_rule_params(counts)
 
         with open(testFile, "r") as f:
             trees = [line.split() for line in f]
@@ -188,8 +193,6 @@ if __name__ == '__main__':
         with open(predFile, "w") as outfile:
             for t in parsed_trees:
                 outfile.write(json.dumps(t) + '\n')
-
-
 
     else:
         raise ValueError('Enter python parser.py q4/q5/q6 and necessary files ')
