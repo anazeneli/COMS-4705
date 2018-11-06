@@ -18,4 +18,5 @@ Execution:
 
 Observations:
     Efficiency of algorithm greatly improved once I hashed X -> YZ, using X as the rule lookup, and adding YZ to a list as the value. This reduced the time from initially well over 200 seconds to 40 seconds in part 5, and from 400 to 96 in part 6. 
-    The performance of the parser using vertical markovization is 0.742-- a 0.028 improvement over the baseline parser. With vector markovization, we see the same totals, but with a higher precision, recall and f1 score. With a higher contextual accuracy, the parser can more correctly assign tags. We see an improvement even in the low count tags like NP+ADJ and NP+NUM.
+    
+   The performance of the parser using vertical markovization is 0.742-- a 0.028 improvement over the baseline parser. With vector markovization, we see the same totals, but with a higher precision, recall and f1 score. With a higher contextual accuracy, the parser can more correctly assign tags. We see an improvement even in the low count tags like NP+ADJ and NP+NUM.
