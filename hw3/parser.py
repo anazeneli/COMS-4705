@@ -133,7 +133,7 @@ def cky(sen):
                         if temp_pi > max_pi:
                             max_pi = temp_pi
                             # record the rule and split point of max prob
-                            max_bp = (y,z, s)
+                            max_bp = (y,z,s)
 
                     pi[i,j,X] = max_pi
                     bp[i,j,X] = max_bp
