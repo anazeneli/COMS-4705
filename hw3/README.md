@@ -1,3 +1,5 @@
+PCFG Parser using CKY algorithm. 
+
 Question 4
 Execution:
     python parser.py q4 parse_train.dat parse_train.RARE.dat
